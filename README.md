@@ -1,4 +1,4 @@
-                                                                                    **Laravel Website Monitoring System**
+**Laravel Website Monitoring System**
 
 A robust, real-time website monitoring dashboard built with Laravel and Vite. This system allows you to manage a list of websites, upload custom logos, and actively monitor their UP/DOWN status using HTTP response checks.
 
