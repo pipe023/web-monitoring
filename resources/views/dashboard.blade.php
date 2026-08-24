@@ -106,7 +106,7 @@
             fetch("{{ route('websites.autoPing') }}", { method: "POST", headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" } })
             .then(() => window.location.reload());
         });
-        setTimeout(() => window.location.reload(), 10000);
+        setTimeout(() => window.location.reload(), 60000);
     </script>
 </body>
 </html>
