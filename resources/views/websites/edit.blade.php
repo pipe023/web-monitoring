@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Website - Website Monitor</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite('resources/css/app.css')
 </head>
 <body class="bg-gray-100 p-8 min-h-screen flex items-center justify-center">
     <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-md">

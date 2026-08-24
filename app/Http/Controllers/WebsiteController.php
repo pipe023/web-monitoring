@@ -117,7 +117,7 @@ class WebsiteController extends Controller
             try {
                 $startTime = microtime(true);
                 $response = Http::timeout(10)->get($site->url);
-                $responseTime = round((microtime(true) - $startTime) * 1000);
+                $responseTime = round((microtime(true) - $startTime) * 60000);
                 $statusCode = $response->status();
 
                 if ($response->successful() || ($statusCode >= 300 && $statusCode < 400)) {
