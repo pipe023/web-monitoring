@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Website;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 class WebsiteController extends Controller
@@ -14,7 +13,7 @@ class WebsiteController extends Controller
     {
         // Get all unarchived websites
         $websites = Website::where('is_archived', false)->get();
-    
+
         // Count the statuses
         $upCount = $websites->where('status', 'UP')->count();
         $downCount = $websites->where('status', 'DOWN')->count();
@@ -26,6 +25,7 @@ class WebsiteController extends Controller
     public function index()
     {
         $websites = Website::where('is_archived', false)->get();
+
         return view('websites.index', compact('websites'));
     }
 
@@ -38,6 +38,7 @@ class WebsiteController extends Controller
     {
         $request->validate(['name' => 'required', 'url' => 'required|url']);
         Website::create($request->all());
+
         return redirect()->route('websites.index')->with('success', 'Website added successfully.');
     }
 
@@ -49,11 +50,11 @@ class WebsiteController extends Controller
     public function update(Request $request, Website $website)
     {
         $validated = $request->validate([
-        'name' => 'required',
-        'url' => 'required|url',
-        'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5000',
-        'vapt_status' => 'required'
-    ]);
+            'name' => 'required',
+            'url' => 'required|url',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5000',
+            'vapt_status' => 'required',
+        ]);
 
         // Handle the file upload properly
         if ($request->hasFile('logo')) {
@@ -68,31 +69,33 @@ class WebsiteController extends Controller
         // THIS IS THE CRITICAL LINE FOR EDITING:
         // It applies the new data to the specific website being edited
         $website->update($validated);
-    
-            return redirect()->route('websites.index')->with('success', 'Website updated successfully.');
+
+        return redirect()->route('websites.index')->with('success', 'Website updated successfully.');
     }
-    
+
     public function destroy(Website $website)
     {
         $website->delete();
+
         return redirect()->route('websites.index');
     }
 
     public function vapt()
     {
         $websites = Website::where('is_archived', false)->get();
+
         return view('websites.vapt', compact('websites'));
     }
 
     public function updateVapt(Request $request, Website $website)
     {
         // Add 'For Patching' to the validation rule
-            $request->validate([
-                'vapt_status' => 'required|in:Pending,In Progress,Passed,Failed,For Patching'
+        $request->validate([
+            'vapt_status' => 'required|in:Pending,In Progress,Passed,Failed,For Patching',
         ]);
 
         $website->update([
-            'vapt_status' => $request->vapt_status
+            'vapt_status' => $request->vapt_status,
         ]);
 
         return redirect()->back()->with('success', "VAPT status for {$website->name} updated successfully.");
@@ -101,54 +104,65 @@ class WebsiteController extends Controller
     public function archives()
     {
         $websites = Website::where('is_archived', true)->get();
+
         return view('websites.archives', compact('websites'));
     }
 
     public function archive(Website $website)
     {
         $website->update(['is_archived' => true]);
+
         return redirect()->route('websites.index');
     }
+
     public function pingAll()
     {
         $websites = Website::where('is_archived', false)->get();
 
         foreach ($websites as $site) {
             try {
-                $startTime = microtime(true);
-                $response = Http::timeout(10)->get($site->url);
-                $responseTime = round((microtime(true) - $startTime) * 60000);
-                $statusCode = $response->status();
+                $host = parse_url($site->url, PHP_URL_HOST);
 
-                if ($response->successful() || ($statusCode >= 300 && $statusCode < 400)) {
+                if (! is_string($host) || $host === '') {
+                    throw new \RuntimeException('The website URL does not contain a valid host.');
+                }
+
+                $startTime = microtime(true);
+                $arguments = PHP_OS_FAMILY === 'Windows'
+                    ? ['ping', '-n', '1', '-w', '5000', $host]
+                    : ['ping', '-c', '1', '-W', '5', $host];
+                $result = Process::timeout(6)->run($arguments);
+                $responseTime = round((microtime(true) - $startTime) * 1000);
+
+                if ($result->successful()) {
                     $site->update([
                         'status' => 'UP',
                         'response_time' => $responseTime,
-                        'http_status' => $statusCode
+                        'http_status' => null,
                     ]);
                 } else {
                     $site->update([
                         'status' => 'DOWN',
                         'response_time' => null,
-                        'http_status' => $statusCode
+                        'http_status' => null,
                     ]);
                 }
             } catch (\Exception $e) {
                 $site->update([
                     'status' => 'DOWN',
                     'response_time' => null,
-                    'http_status' => 0 // 0 means unreachable
+                    'http_status' => null,
                 ]);
             }
         }
 
     }
 
-    //AUTO-PING
+    // AUTO-PING
     public function autoPing()
     {
         // Reuse your existing ping logic here
-        $this->pingAll(); 
+        $this->pingAll();
 
         return response()->json(['message' => 'Ping complete']);
     }
@@ -157,8 +171,8 @@ class WebsiteController extends Controller
     public function serveSystemLogo()
     {
         $path = public_path('system-logo.png');
-        
-        if (!file_exists($path)) {
+
+        if (! file_exists($path)) {
             abort(404);
         }
 
@@ -168,11 +182,12 @@ class WebsiteController extends Controller
     // Serve website logos using the website's ID instead of the file path
     public function serveWebsiteLogo(Website $website)
     {
-        if (!$website->logo || !Storage::disk('public')->exists($website->logo)) {
+        if (! $website->logo || ! Storage::disk('public')->exists($website->logo)) {
             abort(404);
         }
 
-        $fullPath = storage_path('app/public/' . $website->logo);
+        $fullPath = storage_path('app/public/'.$website->logo);
+
         return response()->file($fullPath);
     }
 }
