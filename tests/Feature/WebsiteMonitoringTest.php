@@ -15,7 +15,9 @@ it('checks website hosts with ICMP ping', function () {
         'http_status' => 503,
     ]);
 
-    $this->post(route('websites.pingAll'))->assertOk();
+    $this->post(route('websites.pingAll'))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('success', 'All websites have been pinged.');
 
     expect($website->refresh()->status)->toBe('UP')
         ->and($website->response_time)->toBeInt()
@@ -40,7 +42,7 @@ it('uses the website when ICMP is blocked', function () {
         'is_archived' => false,
     ]);
 
-    $this->post(route('websites.pingAll'))->assertOk();
+    $this->post(route('websites.pingAll'))->assertRedirect(route('dashboard'));
 
     expect($website->refresh()->status)->toBe('UP')
         ->and($website->response_time)->toBeInt()

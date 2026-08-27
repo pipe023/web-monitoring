@@ -162,6 +162,7 @@ class WebsiteController extends Controller
             }
         }
 
+        return redirect()->route('dashboard')->with('success', 'All websites have been pinged.');
     }
 
     // AUTO-PING
