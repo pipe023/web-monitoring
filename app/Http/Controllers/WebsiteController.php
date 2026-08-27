@@ -37,8 +37,13 @@ class WebsiteController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required', 'url' => 'required|url']);
-        Website::create($request->all());
+        $validated = $request->validate([
+            'name' => 'required',
+            'url' => 'required_if:monitor_method,url|nullable|url',
+            'monitor_method' => 'required|in:url,ping',
+            'ping_ip' => 'required_if:monitor_method,ping|nullable|ip',
+        ]);
+        Website::create($validated);
 
         return redirect()->route('websites.index')->with('success', 'Website added successfully.');
     }
@@ -52,9 +57,10 @@ class WebsiteController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required',
-            'url' => 'required|url',
+            'url' => 'required_if:monitor_method,url|nullable|url',
+            'monitor_method' => 'required|in:url,ping',
+            'ping_ip' => 'required_if:monitor_method,ping|nullable|ip',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5000',
-            'vapt_status' => 'required',
         ]);
 
         // Handle the file upload properly
@@ -122,7 +128,23 @@ class WebsiteController extends Controller
 
         foreach ($websites as $site) {
             try {
-                $host = parse_url($site->url, PHP_URL_HOST);
+                if ($site->monitor_method === 'url') {
+                    $httpStartTime = microtime(true);
+                    $response = Http::timeout(10)->get($site->url);
+                    $httpResponseTime = round((microtime(true) - $httpStartTime) * 1000);
+                    $statusCode = $response->status();
+                    $isUp = $response->successful() || ($statusCode >= 300 && $statusCode < 400);
+
+                    $site->update([
+                        'status' => $isUp ? 'UP' : 'DOWN',
+                        'response_time' => $isUp ? $httpResponseTime : null,
+                        'http_status' => $statusCode,
+                    ]);
+
+                    continue;
+                }
+
+                $host = $site->ping_ip ?: parse_url($site->url, PHP_URL_HOST);
 
                 if (! is_string($host) || $host === '') {
                     throw new \RuntimeException('The website URL does not contain a valid host.');
@@ -140,17 +162,6 @@ class WebsiteController extends Controller
                         'status' => 'UP',
                         'response_time' => $responseTime,
                         'http_status' => null,
-                    ]);
-                } else {
-                    $httpStartTime = microtime(true);
-                    $response = Http::timeout(10)->get($site->url);
-                    $httpResponseTime = round((microtime(true) - $httpStartTime) * 1000);
-                    $statusCode = $response->status();
-
-                    $site->update([
-                        'status' => $response->successful() || ($statusCode >= 300 && $statusCode < 400) ? 'UP' : 'DOWN',
-                        'response_time' => $response->successful() || ($statusCode >= 300 && $statusCode < 400) ? $httpResponseTime : null,
-                        'http_status' => $statusCode,
                     ]);
                 }
             } catch (\Exception $e) {

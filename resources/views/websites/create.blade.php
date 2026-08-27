@@ -12,6 +12,15 @@
         
         <form action="{{ route('websites.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
+
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="monitor_method">Monitor By</label>
+                <select name="monitor_method" id="monitor_method" class="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="url" {{ old('monitor_method', 'url') === 'url' ? 'selected' : '' }}>URL</option>
+                    <option value="ping" {{ old('monitor_method') === 'ping' ? 'selected' : '' }}>IP</option>
+                </select>
+                @error('monitor_method') <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p> @enderror
+            </div>
             
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="name">Website Name</label>
@@ -19,28 +28,23 @@
                 @error('name') <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div class="mb-4">
+            <div class="mb-4" id="url-field">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="url">URL</label>
                 <input type="url" name="url" id="url" value="{{ old('url') }}" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 @error('url') border-red-500 @enderror" placeholder="https://example.com">
                 @error('url') <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="mb-4 hidden" id="ping-ip-field">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="ping_ip">IP Address</label>
+                <input type="text" name="ping_ip" id="ping_ip" value="{{ old('ping_ip') }}" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 @error('ping_ip') border-red-500 @enderror" placeholder="e.g., 192.0.2.10">
+                <p class="text-xs text-gray-500 mt-1">Required when IP monitoring is selected.</p>
+                @error('ping_ip') <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="logo">Website Logo (Optional)</label>
                 <input type="file" name="logo" id="logo" accept="image/*" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
                 @error('logo') <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <!-- VAPT Status with new "For Patching" option -->
-            <div class="mb-6">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="vapt_status">Initial VAPT Status</label>
-                <select name="vapt_status" id="vapt_status" class="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="For Patching">For Patching</option>
-                    <option value="Passed">Passed</option>
-                    <option value="Failed">Failed</option>
-                </select>
             </div>
 
             <div class="flex items-center justify-between">
@@ -53,5 +57,27 @@
             </div>
         </form>
     </div>
+    <script>
+        const monitorMethod = document.getElementById('monitor_method');
+        const urlField = document.getElementById('url-field');
+        const urlInput = document.getElementById('url');
+        const pingIpField = document.getElementById('ping-ip-field');
+        const pingIpInput = document.getElementById('ping_ip');
+
+        function updatePingIpField() {
+            const isIpMonitoring = monitorMethod.value === 'ping';
+            urlField.classList.toggle('hidden', isIpMonitoring);
+            urlInput.disabled = isIpMonitoring;
+            if (isIpMonitoring) {
+                urlInput.value = '';
+            }
+            pingIpField.classList.toggle('hidden', !isIpMonitoring);
+            pingIpInput.required = isIpMonitoring;
+            pingIpInput.disabled = !isIpMonitoring;
+        }
+
+        monitorMethod.addEventListener('change', updatePingIpField);
+        updatePingIpField();
+    </script>
 </body>
 </html>

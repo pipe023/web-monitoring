@@ -72,8 +72,12 @@
     @endif
                             </td>
                             <td class="py-4 px-6 text-gray-800 font-medium">{{ $site->name }}</td>
-                            <td class="py-4 px-6 text-blue-600 hover:underline">
-                                <a href="{{ $site->url }}" target="_blank">{{ $site->url }}</a>
+                            <td class="py-4 px-6 {{ $site->monitor_method === 'ping' ? 'text-gray-600' : 'text-blue-600 hover:underline' }}">
+                                @if($site->monitor_method === 'ping')
+                                    IP: {{ $site->ping_ip }}
+                                @else
+                                    <a href="{{ $site->url }}" target="_blank">{{ $site->url }}</a>
+                                @endif
                             </td>
                             <td class="py-4 px-6 flex justify-center space-x-2">
                                 <a href="{{ route('websites.edit', $site) }}" class="bg-yellow-500 text-white px-3 py-1.5 rounded text-sm hover:bg-yellow-600 transition shadow-sm">Edit</a>

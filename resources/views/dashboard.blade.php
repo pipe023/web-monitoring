@@ -69,7 +69,11 @@
                         <img src="{{ route('media.websiteLogo', $site) }}" alt="Logo" class="h-12 w-12 rounded-full object-cover border border-gray-200 flex-shrink-0">
                         <div class="overflow-hidden">
                             <h2 class="text-xl font-semibold text-gray-800 truncate">{{ $site->name }}</h2>
-                            <a href="{{ $site->url }}" target="_blank" class="text-blue-500 hover:underline text-sm block truncate">{{ $site->url }}</a>
+                            @if($site->monitor_method === 'ping')
+                                <span class="text-gray-500 text-sm block truncate">IP: {{ $site->ping_ip }}</span>
+                            @else
+                                <a href="{{ $site->url }}" target="_blank" class="text-blue-500 hover:underline text-sm block truncate">{{ $site->url }}</a>
+                            @endif
                         </div>
                     </div>
                     
