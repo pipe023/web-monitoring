@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Website;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
@@ -141,10 +142,15 @@ class WebsiteController extends Controller
                         'http_status' => null,
                     ]);
                 } else {
+                    $httpStartTime = microtime(true);
+                    $response = Http::timeout(10)->get($site->url);
+                    $httpResponseTime = round((microtime(true) - $httpStartTime) * 1000);
+                    $statusCode = $response->status();
+
                     $site->update([
-                        'status' => 'DOWN',
-                        'response_time' => null,
-                        'http_status' => null,
+                        'status' => $response->successful() || ($statusCode >= 300 && $statusCode < 400) ? 'UP' : 'DOWN',
+                        'response_time' => $response->successful() || ($statusCode >= 300 && $statusCode < 400) ? $httpResponseTime : null,
+                        'http_status' => $statusCode,
                     ]);
                 }
             } catch (\Exception $e) {
